@@ -1,0 +1,78 @@
+on: [push, pull_request]
+name: Build
+jobs:
+  UnityBuildWin64:
+    name: Build for StandaloneWindows64
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4.1.4
+    - name: Cache
+      uses: actions/cache@v4.0.2
+      with:
+        path: ./Library
+        key: Library-StandaloneWindows64
+        restore-keys: Library-
+    - name: Build Project
+      uses: game-ci/unity-builder@v4.2.3
+      env:
+        UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+        UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      with:
+        targetPlatform: StandaloneWindows64
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.3.3
+      with:
+        name: Build-StandaloneWindows64
+        path: build/StandaloneWindows64
+  UnityBuildWin32:
+    name: Build for StandaloneWindows
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4.1.4
+    - name: Cache
+      uses: actions/cache@v4.0.2
+      with:
+        path: ./Library
+        key: Library-StandaloneWindows
+        restore-keys: Library-
+    - name: Build Project
+      uses: game-ci/unity-builder@v4.2.3
+      env:
+        UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+        UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      with:
+        targetPlatform: StandaloneWindows
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.3.3
+      with:
+        name: Build-StandaloneWindows
+        path: build/StandaloneWindows
+  UnityBuildMacOS:
+    name: Build for StandaloneOSX
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4.1.4
+    - name: Cache
+      uses: actions/cache@v4.0.2
+      with:
+        path: ./Library
+        key: Library-StandaloneOSX
+        restore-keys: Library-
+    - name: Build Project
+      uses: game-ci/unity-builder@v4.2.3
+      env:
+        UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+        UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      with:
+        targetPlatform: StandaloneOSX
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.3.3
+      with:
+        name: Build-StandaloneOSX
+        path: build/StandAloneOSX
