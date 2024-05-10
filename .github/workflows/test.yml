@@ -1,8 +1,11 @@
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches: main
 name: Test
 jobs:
   UnityTest:
-    name: Test in PlayMode
+    name: Test in playmode
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -13,7 +16,7 @@ jobs:
         path: ./Library
         key: Library-UnityTest
         restore-keys: Library-
-    - name: Run PlayMode Tests
+    - name: Run playmode Tests
       uses: game-ci/unity-test-runner@v4.1.1
       env:
         UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
