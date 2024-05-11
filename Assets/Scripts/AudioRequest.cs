@@ -5,23 +5,24 @@ namespace Assets.Scripts
 {
     public class AudioRequest
     {
-        public string success { get; set; }
-        public State state { get; set; }
+        public string Success { get; set; }
+        public string Inference_job_token { get; set; }
+        public State State { get; set; }
     }
 
     public class State
     {
-        public string job_token { get; set; }
-        public string status { get; set; }
-        public string maybe_extra_status_description { get; set; }
-        public int attempt_count { get; set; }
-        public string maybe_result_token { get; set; }
-        public string maybe_public_bucket_wav_audio_path { get; set; }
-        public string model_token { get; set; }
-        public string tts_model_type { get; set; }
-        public string title { get; set; }
-        public string raw_inference_text { get; set; }
-        public string created_at { get; set; }
-        public string updated_at { get; set; }
+        public string Job_token { get; set; }
+        public string Status { get; set; }
+        public string Maybe_extra_status_description { get; set; }
+        public int Attempt_count { get; set; }
+        public string Maybe_result_token { get; set; }
+        public string Maybe_public_bucket_wav_audio_path { get; set; }
+        public string Model_token { get; set; }
+        public string Tts_model_type { get; set; }
+        public string Title { get; set; }
+        public string Raw_inference_text { get; set; }
+        public string Created_at { get; set; }
+        public string Updated_at { get; set; }
     }
 }

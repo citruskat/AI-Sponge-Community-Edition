@@ -19,6 +19,7 @@ namespace Assets.Scripts
 		private HttpClient client;
 		private string fakeYouAPIKey;
 		private List<AudioRequest> audioRequests;
+		private List<string> jobTokens;
 		private List<AudioClip> audioClips;
 
 		public List<AudioClip> AudioClips => audioClips;
@@ -34,7 +35,7 @@ namespace Assets.Scripts
         {
 	 		var jsonContent = new
 			{
-				inference_text =  "I have consumed 17 million jellyfish esq.",
+				inference_text =  "I have consumed 17 million metal pipes esq.",
 				tts_model_token = "TM:ym446j7wkewg",
 				uuid_idempotency_token = Guid.NewGuid().ToString()
 			};
@@ -42,10 +43,11 @@ namespace Assets.Scripts
 			var content = new StringContent(JsonConvert.SerializeObject(jsonContent), Encoding.UTF8, "application/json");
 			var response = await client.PostAsync("https://api.fakeyou.com/tts/inference", content);
 			var responseString = await response.Content.ReadAsStringAsync();
-			Debug.Log(responseString);
+			jobTokens.Add(JsonConvert.DeserializeObject<AudioRequest>(responseString).Inference_job_token);
+			Debug.Log(jobTokens[0]);
 
-			audioRequests.Add(JsonConvert.DeserializeObject<AudioRequest>(responseString));
-			Debug.Log(audioRequests[0].state.maybe_public_bucket_wav_audio_path);
+			//audioRequests.Add(JsonConvert.DeserializeObject<AudioRequest>(responseString));
+			//Debug.Log(audioRequests[0].state.maybe_public_bucket_wav_audio_path);
 		}
 
 		private IEnumerator DownloadAudio()
@@ -53,7 +55,7 @@ namespace Assets.Scripts
 			UnityWebRequest www;
 			foreach (var audioRequest in audioRequests)
 			{
-				www = UnityWebRequestMultimedia.GetAudioClip($"https://storage.googleapis.com/vocodes-public{audioRequest.state.maybe_public_bucket_wav_audio_path}", AudioType.WAV);
+				www = UnityWebRequestMultimedia.GetAudioClip($"https://storage.googleapis.com/vocodes-public{audioRequest.State.Maybe_public_bucket_wav_audio_path}", AudioType.WAV);
 				yield return www.SendWebRequest();
 				var audioClip = DownloadHandlerAudioClip.GetContent(www);
 				audioClips.Add(audioClip);
@@ -91,6 +93,7 @@ namespace Assets.Scripts
 		{
 			audioClips = new List<AudioClip>();
 			audioRequests = new List<AudioRequest>();
+			jobTokens = new List<string>();
 
 			audioHandler = GetComponent<AudioHandler>();
 			cameraManager = GetComponent<CameraManager>();
