@@ -14,6 +14,7 @@ public class ScriptDebugger : EditorWindow
     private AudioHandler audioHandler;
     private CameraManager cameraManager;
     private CharacterManager characterManager;
+    private FakeYouService fakeYouService;
     private List<string> validCharacters;
 
     [MenuItem("Window/Script Debugger")]
@@ -29,6 +30,7 @@ public class ScriptDebugger : EditorWindow
         audioHandler = FindFirstObjectByType<AudioHandler>();
         cameraManager = FindFirstObjectByType<CameraManager>();
         characterManager = FindFirstObjectByType<CharacterManager>();
+        fakeYouService = FindFirstObjectByType<FakeYouService>();
         
         // This is a list of valid characters that can be used in the audio debugging functions
         validCharacters = new List<string> { "spongebob", "patrick", "squidward", "mrkrabs", "plankton", "sandy", "larry", "bubblebuddy", "mrspuff" };
@@ -112,8 +114,15 @@ public class ScriptDebugger : EditorWindow
         var fileNameField = new TextField("File Name");
         loadVoiceLineFoldout.Add(fileNameField);
 
+        // Create an int field for the the index
+        var indexField = new IntegerField("audioClips Index");
+        loadVoiceLineFoldout.Add(indexField);
+
         // Create a button to load the voice line
         loadVoiceLineFoldout.Add(CreateDebugButton("Load voice line", () => { LoadVoiceLine(dropdown.value, fileNameField.value); }));
+
+        // Create a button to load the voice line from memory
+        loadVoiceLineFoldout.Add(CreateDebugButton("Load voice line from memory", () => { LoadVoiceLineFromMemory(dropdown.value, indexField.value); }));
 
         // Play voice line controls
         Foldout playVoiceLineFoldout = new()
@@ -146,8 +155,24 @@ public class ScriptDebugger : EditorWindow
 
 	private void LoadVoiceLine(string characterNameParameterLoad, string fileNameParameter)
     {
+        if (string.IsNullOrEmpty(fileNameParameter))
+        {
+            Debug.LogError("SCRIPT DEBUGGER: File name cannot be empty");
+            return;
+        }
         Debug.Log($"SCRIPT DEBUGGER: Loading voice line for {characterNameParameterLoad} from file {fileNameParameter}");
         audioHandler.LoadVoiceLine(characterNameParameterLoad, fileNameParameter);
+    }
+
+    private void LoadVoiceLineFromMemory(string characterNameParameterLoad, int index)
+    {
+        if (index < 0 || index >= fakeYouService.AudioClips.Count)
+        {
+            Debug.LogError("SCRIPT DEBUGGER: Index out of range");
+            return;
+        }
+        Debug.Log($"SCRIPT DEBUGGER: Loading voice line for {characterNameParameterLoad} from instance of {fakeYouService}");
+        audioHandler.LoadVoiceLine(characterNameParameterLoad, fakeYouService.AudioClips[index]);
     }
 
     private void PlayVoiceLine(string characterNameParameterPlay)

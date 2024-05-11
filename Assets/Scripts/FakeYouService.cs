@@ -22,6 +22,8 @@ namespace Assets.Scripts
 		private string fakeYouAPIKey;
 		private List<AudioRequest> audioRequests;
 		private List<AudioClip> audioClips;
+		
+		public List<AudioClip> AudioClips => audioClips;
 
 		private AudioHandler audioHandler;
 		private CameraManager cameraManager;
