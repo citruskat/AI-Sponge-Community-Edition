@@ -22,7 +22,7 @@ namespace Assets.Scripts
 		private string fakeYouAPIKey;
 		private List<AudioRequest> audioRequests;
 		private List<AudioClip> audioClips;
-		
+
 		public List<AudioClip> AudioClips => audioClips;
 
 		private AudioHandler audioHandler;
@@ -80,22 +80,27 @@ namespace Assets.Scripts
 		* We will then use this list to play the voice lines similarly to how we did in DevelopmentNonsense.cs
 		*/
 
+		private void InitializeHttpClient()
+		{
+			client = new HttpClient(handler);
+			client.DefaultRequestHeaders.Add("Accept", "application/json");
+			fakeYouAPIKey = File.ReadAllText("Assets/Resources/FAKEYOU_API_KEY");
+			var uri = new System.Uri("https://api.fakeyou.com");
+			handler.CookieContainer.Add(uri, new System.Net.Cookie("session", fakeYouAPIKey));
+			client = new HttpClient(handler);
+			client.DefaultRequestHeaders.Add("Accept", "application/json");
+		}
+
 		public void Awake()
 		{
 			audioClips = new List<AudioClip>();
-
 			audioHandler = GetComponent<AudioHandler>();
 			cameraManager = GetComponent<CameraManager>();
 			characterManager = GetComponent<CharacterManager>();
 
 			try
 			{
-				fakeYouAPIKey = File.ReadAllText("Assets/Resources/FAKEYOU_API_KEY");
-				// Debug.Log(fakeYouAPIKey);
-				var uri = new System.Uri("https://api.fakeyou.com");
-				handler.CookieContainer.Add(uri, new System.Net.Cookie("session", fakeYouAPIKey));
-				client = new HttpClient(handler);
-				client.DefaultRequestHeaders.Add("Accept", "application/json");
+				InitializeHttpClient();
 			}
 			catch (FileNotFoundException e)
 			{
