@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 using System.Net.Http;
 using UnityEngine;
 using Newtonsoft.Json;
@@ -14,7 +13,6 @@ namespace Assets.Scripts
 	/// <summary>
 	/// This class will connect with the FakeYou API to request and retrieve TTS audio files.
 	/// </summary>
-	// Note: plankton voice id is TM:ym446j7wkewg
 	public class FakeYouService : MonoBehaviour
 	{
 		private readonly HttpClientHandler handler = new();
@@ -32,24 +30,22 @@ namespace Assets.Scripts
 		[SerializeField]
 		private int function;
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private async void RequestVoiceLine()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-	/* 		var jsonContent = new
+	 		var jsonContent = new
 			{
-				inference_text = 
-				tts_model_token = 
-				uuid_idempotency_token = 
+				inference_text =  "I have consumed 17 million jellyfish esq.",
+				tts_model_token = "TM:ym446j7wkewg",
+				uuid_idempotency_token = Guid.NewGuid().ToString()
 			};
 
 			var content = new StringContent(JsonConvert.SerializeObject(jsonContent), Encoding.UTF8, "application/json");
 			var response = await client.PostAsync("https://api.fakeyou.com/tts/inference", content);
 			var responseString = await response.Content.ReadAsStringAsync();
-			Debug.Log(responseString); */
+			Debug.Log(responseString);
 
-			// For now, we will just get our voice lines from Assets/Resources/example_voice_lines.json but still use our HttpClient to make the request
-			audioRequests = JsonConvert.DeserializeObject<List<AudioRequest>>(File.ReadAllText("Assets/Resources/example_voice_lines.json"));
+			audioRequests.Add(JsonConvert.DeserializeObject<AudioRequest>(responseString));
+			Debug.Log(audioRequests[0].state.maybe_public_bucket_wav_audio_path);
 		}
 
 		private IEnumerator DownloadAudio()
@@ -85,7 +81,7 @@ namespace Assets.Scripts
 			client = new HttpClient(handler);
 			client.DefaultRequestHeaders.Add("Accept", "application/json");
 			fakeYouAPIKey = File.ReadAllText("Assets/Resources/FAKEYOU_API_KEY");
-			var uri = new System.Uri("https://api.fakeyou.com");
+			var uri = new Uri("https://api.fakeyou.com");
 			handler.CookieContainer.Add(uri, new System.Net.Cookie("session", fakeYouAPIKey));
 			client = new HttpClient(handler);
 			client.DefaultRequestHeaders.Add("Accept", "application/json");
@@ -94,6 +90,8 @@ namespace Assets.Scripts
 		public void Awake()
 		{
 			audioClips = new List<AudioClip>();
+			audioRequests = new List<AudioRequest>();
+
 			audioHandler = GetComponent<AudioHandler>();
 			cameraManager = GetComponent<CameraManager>();
 			characterManager = GetComponent<CharacterManager>();
@@ -115,4 +113,3 @@ namespace Assets.Scripts
 		}
 	}
 }
-#endif
