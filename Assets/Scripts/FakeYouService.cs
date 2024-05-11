@@ -21,6 +21,7 @@ namespace Assets.Scripts
 		private HttpClient client;
 		private string fakeYouAPIKey;
 		private List<AudioRequest> audioRequests;
+		private List<AudioClip> audioClips;
 
 		private AudioHandler audioHandler;
 		private CameraManager cameraManager;
@@ -49,32 +50,16 @@ namespace Assets.Scripts
 			audioRequests = JsonConvert.DeserializeObject<List<AudioRequest>>(File.ReadAllText("Assets/Resources/example_voice_lines.json"));
 		}
 
-		private IEnumerator Speak()
+		private IEnumerator DownloadAudio()
 		{
-			List<AudioClip> audioClips = new List<AudioClip>();
-
+			UnityWebRequest www;
 			foreach (var audioRequest in audioRequests)
 			{
-				var content = UnityWebRequestMultimedia.GetAudioClip($"https://storage.googleapis.com/vocodes-public{audioRequest.state.maybe_public_bucket_wav_audio_path}", AudioType.WAV);
-				var response = content.SendWebRequest();
-				while (!response.isDone)
-				{
-					yield return null;
-				}
-				var audioClip = DownloadHandlerAudioClip.GetContent(content);
+				www = UnityWebRequestMultimedia.GetAudioClip($"https://storage.googleapis.com/vocodes-public{audioRequest.state.maybe_public_bucket_wav_audio_path}", AudioType.WAV);
+				yield return www.SendWebRequest();
+				var audioClip = DownloadHandlerAudioClip.GetContent(www);
 				audioClips.Add(audioClip);
 			}
-
-			foreach (var audioClip in audioClips)
-			{
-				audioHandler.LoadVoiceLine("plankton", audioClip);
-				audioHandler.PlayVoiceLine("plankton");
-				yield return new WaitForSeconds(audioClip.length);
-				yield return new WaitForSeconds(0.5f);
-			}
-
-			// Now you have a list of audio clips for each item in audioRequests
-			// You can use this list as needed
 		}
 
 		private async void CheckCookie()
@@ -95,6 +80,8 @@ namespace Assets.Scripts
 
 		public void Awake()
 		{
+			audioClips = new List<AudioClip>();
+
 			audioHandler = GetComponent<AudioHandler>();
 			cameraManager = GetComponent<CameraManager>();
 			characterManager = GetComponent<CharacterManager>();
@@ -114,10 +101,10 @@ namespace Assets.Scripts
 			}
 		}
 
-		public void Start()
+		public IEnumerator Start()
 		{
 			RequestVoiceLine();
-			StartCoroutine(Speak());
+			yield return StartCoroutine(DownloadAudio());
 		}
 	}
 }
