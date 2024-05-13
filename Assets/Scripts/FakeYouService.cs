@@ -7,6 +7,9 @@ using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.Networking;
+using System.Threading.Tasks;
+
+// API docs: https://docs.fakeyou.com/
 
 namespace Assets.Scripts
 {
@@ -43,11 +46,28 @@ namespace Assets.Scripts
 			var content = new StringContent(JsonConvert.SerializeObject(jsonContent), Encoding.UTF8, "application/json");
 			var response = await client.PostAsync("https://api.fakeyou.com/tts/inference", content);
 			var responseString = await response.Content.ReadAsStringAsync();
+			// I am just taking the inference_job_token and storing it in a list. I am ignoring the status content as I don't think it will be important, but in case there are any issues, I am noting that here.
+			if (JsonConvert.DeserializeObject<AudioRequest>(responseString).Success != "true")
+			{
+				Debug.LogWarning("TTS request was not successful");
+			}
 			jobTokens.Add(JsonConvert.DeserializeObject<AudioRequest>(responseString).Inference_job_token);
 			Debug.Log(jobTokens[0]);
 
 			//audioRequests.Add(JsonConvert.DeserializeObject<AudioRequest>(responseString));
 			//Debug.Log(audioRequests[0].state.maybe_public_bucket_wav_audio_path);
+		}
+
+		private IEnumerator PollJob()
+		{
+			UnityWebRequest www;
+			foreach (var job in jobTokens)
+			{
+				www = UnityWebRequest.Get($"https://api.fakeyou.com/tts/job/{job}");
+				yield return www.SendWebRequest();
+				var jobStatus = www.downloadHandler.text;
+				Debug.Log(jobStatus);
+			}
 		}
 
 		private IEnumerator DownloadAudio()
@@ -112,7 +132,8 @@ namespace Assets.Scripts
 		public IEnumerator Start()
 		{
 			RequestVoiceLine();
-			yield return StartCoroutine(DownloadAudio());
+			yield return StartCoroutine(PollJob());
+			// yield return StartCoroutine(DownloadAudio());
 		}
 	}
 }
