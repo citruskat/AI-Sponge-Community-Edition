@@ -7,7 +7,6 @@ using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.Networking;
-using System.Threading.Tasks;
 
 // API docs: https://docs.fakeyou.com/
 
@@ -22,26 +21,18 @@ namespace Assets.Scripts
 		private HttpClient client;
 		private string fakeYouAPIKey;
 		private List<AudioRequest> audioRequests;
-		private List<string> jobTokens;
 		private List<AudioClip> audioClips;
 
 		public List<AudioClip> AudioClips => audioClips;
 
-		private AudioHandler audioHandler;
-		private CameraManager cameraManager;
-		private CharacterManager characterManager;
-
 		private readonly int RETRY_DELAY = 7;
 
-		[SerializeField]
-		private int function;
-
-        private IEnumerator RequestVoiceLine()
+        public IEnumerator RequestVoiceLine(string inference_text, string tts_model_token)
         {
 	 		var jsonContent = new
 			{
-				inference_text =  "I have consumed 17 million metal pipes esq.",
-				tts_model_token = "TM:ym446j7wkewg",
+                inference_text,
+				tts_model_token,
 				uuid_idempotency_token = Guid.NewGuid().ToString()
 			};
 
@@ -77,7 +68,7 @@ namespace Assets.Scripts
 		// Poll each job in audioRequests to check if the audio is ready to be downloaded
 		// If State.Status is "complete_success", download the audio file
 		// Otherwise, poll again after a delay
-		private IEnumerator PollJob()
+		public IEnumerator PollJob()
 		{
 			UnityWebRequest www;
 			for (int i = 0; i < audioRequests.Count; i++)
@@ -107,7 +98,7 @@ namespace Assets.Scripts
 			}
 		}
 
-		private async void CheckCookie()
+		public async void CheckCookie()
 		{
 			var checkKey = await client.GetAsync("https://api.fakeyou.com/v1/billing/active_subscriptions");
 			var checkString = await checkKey.Content.ReadAsStringAsync();
@@ -138,11 +129,6 @@ namespace Assets.Scripts
 		{
 			audioClips = new List<AudioClip>();
 			audioRequests = new List<AudioRequest>();
-			jobTokens = new List<string>();
-
-			audioHandler = GetComponent<AudioHandler>();
-			cameraManager = GetComponent<CameraManager>();
-			characterManager = GetComponent<CharacterManager>();
 
 			try
 			{
@@ -156,8 +142,15 @@ namespace Assets.Scripts
 
 		public IEnumerator Start()
 		{
-			yield return StartCoroutine(RequestVoiceLine());
+			CheckCookie();
+			yield return null;
+/* 			yield return StartCoroutine(RequestVoiceLine("I am a bee esq.", "TM:ym446j7wkewg"));
+			yield return StartCoroutine(RequestVoiceLine("My name is Dr. Jr.", "TM:ym446j7wkewg"));
 			yield return StartCoroutine(PollJob());
+			audioHandler.LoadVoiceLine("plankton", audioClips[0]);
+			yield return StartCoroutine(Speak(audioClips[0], "plankton"));
+			audioHandler.LoadVoiceLine("plankton", audioClips[1]);
+			yield return StartCoroutine(Speak(audioClips[1], "plankton")); */
 		}
 	}
 }
