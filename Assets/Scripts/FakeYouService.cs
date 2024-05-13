@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 using System.Net.Http;
 using UnityEngine;
 using Newtonsoft.Json;
@@ -9,75 +8,97 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.Networking;
 
+// API docs: https://docs.fakeyou.com/
+
 namespace Assets.Scripts
 {
 	/// <summary>
 	/// This class will connect with the FakeYou API to request and retrieve TTS audio files.
 	/// </summary>
-	// Note: plankton voice id is TM:ym446j7wkewg
 	public class FakeYouService : MonoBehaviour
 	{
 		private readonly HttpClientHandler handler = new();
 		private HttpClient client;
 		private string fakeYouAPIKey;
 		private List<AudioRequest> audioRequests;
+		private List<AudioClip> audioClips;
 
-		private AudioHandler audioHandler;
-		private CameraManager cameraManager;
-		private CharacterManager characterManager;
+		public List<AudioClip> AudioClips => audioClips;
 
-		[SerializeField]
-		private int function;
+		private readonly int RETRY_DELAY = 7;
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async void RequestVoiceLine()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        public IEnumerator RequestVoiceLine(string inference_text, string tts_model_token)
         {
-	/* 		var jsonContent = new
+	 		var jsonContent = new
 			{
-				inference_text = 
-				tts_model_token = 
-				uuid_idempotency_token = 
+                inference_text,
+				tts_model_token,
+				uuid_idempotency_token = Guid.NewGuid().ToString()
 			};
 
 			var content = new StringContent(JsonConvert.SerializeObject(jsonContent), Encoding.UTF8, "application/json");
-			var response = await client.PostAsync("https://api.fakeyou.com/tts/inference", content);
-			var responseString = await response.Content.ReadAsStringAsync();
-			Debug.Log(responseString); */
-
-			// For now, we will just get our voice lines from Assets/Resources/example_voice_lines.json but still use our HttpClient to make the request
-			audioRequests = JsonConvert.DeserializeObject<List<AudioRequest>>(File.ReadAllText("Assets/Resources/example_voice_lines.json"));
-		}
-
-		private IEnumerator Speak()
-		{
-			List<AudioClip> audioClips = new List<AudioClip>();
-
-			foreach (var audioRequest in audioRequests)
+			var request = new UnityWebRequest("https://api.fakeyou.com/tts/inference", "POST")
 			{
-				var content = UnityWebRequestMultimedia.GetAudioClip($"https://storage.googleapis.com/vocodes-public{audioRequest.state.maybe_public_bucket_wav_audio_path}", AudioType.WAV);
-				var response = content.SendWebRequest();
-				while (!response.isDone)
+				uploadHandler = new UploadHandlerRaw(content.ReadAsByteArrayAsync().Result),
+				downloadHandler = new DownloadHandlerBuffer()
+			};
+			request.SetRequestHeader("Content-Type", "application/json");
+			request.SetRequestHeader("session", fakeYouAPIKey);
+
+			yield return request.SendWebRequest();
+
+			if (request.result != UnityWebRequest.Result.Success)
+			{
+				Debug.LogWarning(request.error);
+				yield break;
+			}
+			else 
+			{
+				var responseString = request.downloadHandler.text;
+				// I am just taking the inference_job_token and storing it in a list. I am ignoring the status content as I don't think it will be important, but in case there are any issues, I am noting that here.
+				if (JsonConvert.DeserializeObject<AudioRequest>(responseString).Success != "true")
 				{
-					yield return null;
+					Debug.LogWarning("TTS request was not successful");
 				}
-				var audioClip = DownloadHandlerAudioClip.GetContent(content);
-				audioClips.Add(audioClip);
+				audioRequests.Add(JsonConvert.DeserializeObject<AudioRequest>(responseString));
+				Debug.Log(audioRequests[0]);
 			}
-
-			foreach (var audioClip in audioClips)
-			{
-				audioHandler.LoadVoiceLine("plankton", audioClip);
-				audioHandler.PlayVoiceLine("plankton");
-				yield return new WaitForSeconds(audioClip.length);
-				yield return new WaitForSeconds(0.5f);
-			}
-
-			// Now you have a list of audio clips for each item in audioRequests
-			// You can use this list as needed
 		}
 
-		private async void CheckCookie()
+		// Poll each job in audioRequests to check if the audio is ready to be downloaded
+		// If State.Status is "complete_success", download the audio file
+		// Otherwise, poll again after a delay
+		public IEnumerator PollJob()
+		{
+			UnityWebRequest www;
+			for (int i = 0; i < audioRequests.Count; i++)
+			{
+				// If we just created the job request, we will use Inference_job_token. After the first poll, the API will return a State.Job_token which we will use for subsequent polls.
+				string job_token = audioRequests[i].Inference_job_token ?? audioRequests[i].State.Job_token;
+				www = UnityWebRequest.Get($"https://api.fakeyou.com/tts/job/{job_token}");
+				yield return www.SendWebRequest();
+				var jobStatus = www.downloadHandler.text;
+
+				Debug.Log(jobStatus);
+				audioRequests[i] = JsonConvert.DeserializeObject<AudioRequest>(jobStatus);
+
+				if (audioRequests[i].State.Status == "complete_success")
+				{
+					// Download the audio file
+					www = UnityWebRequestMultimedia.GetAudioClip($"https://storage.googleapis.com/vocodes-public{audioRequests[i].State.Maybe_public_bucket_wav_audio_path}", AudioType.WAV);
+					yield return www.SendWebRequest();
+					var audioClip = DownloadHandlerAudioClip.GetContent(www);
+					audioClips.Add(audioClip);
+				}
+				else
+				{
+					yield return new WaitForSeconds(RETRY_DELAY);
+					yield return PollJob();
+				}
+			}
+		}
+
+		public async void CheckCookie()
 		{
 			var checkKey = await client.GetAsync("https://api.fakeyou.com/v1/billing/active_subscriptions");
 			var checkString = await checkKey.Content.ReadAsStringAsync();
@@ -93,20 +114,25 @@ namespace Assets.Scripts
 		* We will then use this list to play the voice lines similarly to how we did in DevelopmentNonsense.cs
 		*/
 
+		private void InitializeHttpClient()
+		{
+			client = new HttpClient(handler);
+			client.DefaultRequestHeaders.Add("Accept", "application/json");
+			fakeYouAPIKey = File.ReadAllText("Assets/Resources/FAKEYOU_API_KEY");
+			var uri = new Uri("https://api.fakeyou.com");
+			handler.CookieContainer.Add(uri, new System.Net.Cookie("session", fakeYouAPIKey));
+			client = new HttpClient(handler);
+			client.DefaultRequestHeaders.Add("Accept", "application/json");
+		}
+
 		public void Awake()
 		{
-			audioHandler = GetComponent<AudioHandler>();
-			cameraManager = GetComponent<CameraManager>();
-			characterManager = GetComponent<CharacterManager>();
+			audioClips = new List<AudioClip>();
+			audioRequests = new List<AudioRequest>();
 
 			try
 			{
-				fakeYouAPIKey = File.ReadAllText("Assets/Resources/FAKEYOU_API_KEY");
-				// Debug.Log(fakeYouAPIKey);
-				var uri = new System.Uri("https://api.fakeyou.com");
-				handler.CookieContainer.Add(uri, new System.Net.Cookie("session", fakeYouAPIKey));
-				client = new HttpClient(handler);
-				client.DefaultRequestHeaders.Add("Accept", "application/json");
+				InitializeHttpClient();
 			}
 			catch (FileNotFoundException e)
 			{
@@ -114,11 +140,17 @@ namespace Assets.Scripts
 			}
 		}
 
-		public void Start()
+		public IEnumerator Start()
 		{
-			RequestVoiceLine();
-			StartCoroutine(Speak());
+			CheckCookie();
+			yield return null;
+/* 			yield return StartCoroutine(RequestVoiceLine("I am a bee esq.", "TM:ym446j7wkewg"));
+			yield return StartCoroutine(RequestVoiceLine("My name is Dr. Jr.", "TM:ym446j7wkewg"));
+			yield return StartCoroutine(PollJob());
+			audioHandler.LoadVoiceLine("plankton", audioClips[0]);
+			yield return StartCoroutine(Speak(audioClips[0], "plankton"));
+			audioHandler.LoadVoiceLine("plankton", audioClips[1]);
+			yield return StartCoroutine(Speak(audioClips[1], "plankton")); */
 		}
 	}
 }
-#endif
