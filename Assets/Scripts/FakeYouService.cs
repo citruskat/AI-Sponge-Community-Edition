@@ -31,6 +31,8 @@ namespace Assets.Scripts
 		private CameraManager cameraManager;
 		private CharacterManager characterManager;
 
+		private readonly int RETRY_DELAY = 7;
+
 		[SerializeField]
 		private int function;
 
@@ -66,32 +68,41 @@ namespace Assets.Scripts
 				{
 					Debug.LogWarning("TTS request was not successful");
 				}
-				jobTokens.Add(JsonConvert.DeserializeObject<AudioRequest>(responseString).Inference_job_token);
-				Debug.Log(jobTokens[0]);
+				audioRequests.Add(JsonConvert.DeserializeObject<AudioRequest>(responseString));
+				Debug.Log(audioRequests[0]);
 			}
 		}
 
+		// Poll each job in audioRequests to check if the audio is ready to be downloaded
+		// If State.Status is "complete_success", download the audio file
+		// Otherwise, poll again after a delay
 		private IEnumerator PollJob()
 		{
 			UnityWebRequest www;
-			foreach (var job in jobTokens)
+			for (int i = 0; i < audioRequests.Count; i++)
 			{
-				www = UnityWebRequest.Get($"https://api.fakeyou.com/tts/job/{job}");
+				// If we just created the job request, we will use Inference_job_token. After the first poll, the API will return a State.Job_token which we will use for subsequent polls.
+				string job_token = audioRequests[i].Inference_job_token ?? audioRequests[i].State.Job_token;
+				www = UnityWebRequest.Get($"https://api.fakeyou.com/tts/job/{job_token}");
 				yield return www.SendWebRequest();
 				var jobStatus = www.downloadHandler.text;
-				Debug.Log(jobStatus);
-			}
-		}
 
-		private IEnumerator DownloadAudio()
-		{
-			UnityWebRequest www;
-			foreach (var audioRequest in audioRequests)
-			{
-				www = UnityWebRequestMultimedia.GetAudioClip($"https://storage.googleapis.com/vocodes-public{audioRequest.State.Maybe_public_bucket_wav_audio_path}", AudioType.WAV);
-				yield return www.SendWebRequest();
-				var audioClip = DownloadHandlerAudioClip.GetContent(www);
-				audioClips.Add(audioClip);
+				Debug.Log(jobStatus);
+				audioRequests[i] = JsonConvert.DeserializeObject<AudioRequest>(jobStatus);
+
+				if (audioRequests[i].State.Status == "complete_success")
+				{
+					// Download the audio file
+					www = UnityWebRequestMultimedia.GetAudioClip($"https://storage.googleapis.com/vocodes-public{audioRequests[i].State.Maybe_public_bucket_wav_audio_path}", AudioType.WAV);
+					yield return www.SendWebRequest();
+					var audioClip = DownloadHandlerAudioClip.GetContent(www);
+					audioClips.Add(audioClip);
+				}
+				else
+				{
+					yield return new WaitForSeconds(RETRY_DELAY);
+					yield return PollJob();
+				}
 			}
 		}
 
@@ -146,7 +157,6 @@ namespace Assets.Scripts
 		{
 			yield return StartCoroutine(RequestVoiceLine());
 			yield return StartCoroutine(PollJob());
-			// yield return StartCoroutine(DownloadAudio());
 		}
 	}
 }
