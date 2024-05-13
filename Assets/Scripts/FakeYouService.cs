@@ -52,6 +52,7 @@ namespace Assets.Scripts
 				downloadHandler = new DownloadHandlerBuffer()
 			};
 			request.SetRequestHeader("Content-Type", "application/json");
+			request.SetRequestHeader("session", fakeYouAPIKey);
 
 			yield return request.SendWebRequest();
 
