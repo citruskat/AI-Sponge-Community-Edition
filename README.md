@@ -1,4 +1,10 @@
 # AI Sponge Community Edition
+Release Branch:
+[![Build](https://github.com/citruskat/AI-Sponge-Community-Edition/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/citruskat/AI-Sponge-Community-Edition/actions/workflows/build.yml) [![Test](https://github.com/citruskat/AI-Sponge-Community-Edition/actions/workflows/test.yml/badge.svg)](https://github.com/citruskat/AI-Sponge-Community-Edition/actions/workflows/test.yml)
+
+Development Branch:
+[![Build](https://github.com/citruskat/AI-Sponge-Community-Edition/actions/workflows/build.yml/badge.svg?branch=development)](https://github.com/citruskat/AI-Sponge-Community-Edition/actions/workflows/build.yml) [![Test](https://github.com/citruskat/AI-Sponge-Community-Edition/actions/workflows/test.yml/badge.svg?branch=development)](https://github.com/citruskat/AI-Sponge-Community-Edition/actions/workflows/test.yml)
+
 ## Project Overview
 This project aims to allow users to generate their own AI Sponge episodes. This is a Unity based application which utilizes FakeYou and OpenAI.
 ## Main Features
