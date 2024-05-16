@@ -3,7 +3,7 @@ on:
     branches:
       - main
       - development
-  workflow_dispatch:
+  pull_request:
 name: Build
 jobs:
   UnityBuildWin64:
