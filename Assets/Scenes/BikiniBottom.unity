@@ -273,7 +273,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b300a5f2293a7894c870038448ba838d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  function: 0
 --- !u!1 &322349548
 GameObject:
   m_ObjectHideFlags: 0
@@ -459,7 +458,7 @@ MonoBehaviour:
   m_ShowCameraFrustum: 1
   m_IgnoreTimeScale: 0
   m_WorldUpOverride: {fileID: 0}
-  m_UpdateMethod: 2
+  m_UpdateMethod: 0
   m_BlendUpdateMethod: 1
   m_DefaultBlend:
     m_Style: 1
@@ -802,8 +801,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa7155796051b734daa718462081dc5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_BindingMode: 1
-  m_FollowOffset: {x: 0, y: 2.2, z: 3}
+  m_BindingMode: 5
+  m_FollowOffset: {x: 0, y: 2.2, z: -3}
   m_XDamping: 1
   m_YDamping: 1
   m_ZDamping: 1
